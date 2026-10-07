@@ -66,6 +66,7 @@
   "column_break_13",
   "permlevel",
   "ignore_xss_filter",
+  "executes",
   "constraints_section",
   "unique",
   "no_copy",
@@ -691,6 +692,13 @@
    "fieldname": "in_import_template",
    "fieldtype": "Check",
    "label": "Include in Import Template"
+  },
+  {
+   "description": "Marks this field as holding executable code (Jinja, Python, JS or an expression). Set by developers; only users with the Code Author role may change the value of such a field.",
+   "fieldname": "executes",
+   "fieldtype": "Select",
+   "label": "Executes",
+   "options": "\njinja\npython\njs\nexpression"
   }
  ],
  "grid_page_length": 50,
@@ -698,7 +706,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-09-23 14:47:18.443497",
+ "modified": "2026-10-07 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Core",
  "name": "DocField",

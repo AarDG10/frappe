@@ -66,6 +66,7 @@
   "allow_in_quick_entry",
   "allow_bulk_edit",
   "ignore_xss_filter",
+  "executes",
   "translatable",
   "hide_border",
   "show_dashboard",
@@ -541,6 +542,13 @@
    "fieldname": "mask",
    "fieldtype": "Check",
    "label": "Mask"
+  },
+  {
+   "description": "Marks this field as holding executable code (Jinja, Python, JS or an expression). Set by developers; only users with the Code Author role may change the value of such a field.",
+   "fieldname": "executes",
+   "fieldtype": "Select",
+   "label": "Executes",
+   "options": "\njinja\npython\njs\nexpression"
   }
  ],
  "grid_page_length": 50,
@@ -548,7 +556,7 @@
  "idx": 1,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-23 14:47:18.443497",
+ "modified": "2026-10-07 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Custom",
  "name": "Custom Field",
