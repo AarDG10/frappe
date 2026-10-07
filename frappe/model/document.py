@@ -1350,23 +1350,36 @@ class Document(BaseDocument):
 			return
 
 		executable_fields = self.meta.get_executable_fields()
-		child_executable_fields = {
-			df.fieldname: child_fields
+		tables = [
+			(df, child_fields)
 			for df in self.meta.get_table_fields()
 			if (child_fields := frappe.get_meta(df.options).get_executable_fields())
-		}
-		if not (executable_fields or child_executable_fields):
+		]
+		if not (executable_fields or tables):
 			return
 
 		if frappe.session.user == "Administrator" or "Code Author" in frappe.get_roles():
 			return
 
-		if executable_fields:
-			self.reset_values_if_no_permlevel_access([], executable_fields)
+		saved = frappe.new_doc(self.doctype, as_dict=True) if self.is_new() else self.get_latest()
+		self._restore_executable_fields(self, saved, executable_fields)
 
-		for fieldname, child_fields in child_executable_fields.items():
-			for d in self.get(fieldname):
-				d.reset_values_if_no_permlevel_access([], child_fields)
+		for table_df, child_fields in tables:
+			saved_rows = {} if self.is_new() else {d.name: d for d in saved.get(table_df.fieldname)}
+			defaults = None
+			for row in self.get(table_df.fieldname):
+				reference = saved_rows.get(row.name)
+				if reference is None:
+					# a row the DB has never seen, whatever it claims to be called
+					defaults = defaults or frappe.new_doc(
+						table_df.options, parent_doc=self, parentfield=table_df.fieldname, as_dict=True
+					)
+					reference = defaults
+				self._restore_executable_fields(row, reference, child_fields)
+
+	def _restore_executable_fields(self, doc, saved, fields):
+		for df in fields:
+			doc.set(df.fieldname, saved.get(df.fieldname))
 
 	def get_permlevel_access(self, permission_type="write"):
 		allowed_permlevels = []
