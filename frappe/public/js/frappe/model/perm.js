@@ -299,6 +299,16 @@ $.extend(frappe.perm, {
 		}
 		if (explain) console.log("By Read Only:" + status);
 
+		// code fields are editable only by a Code Author
+		if (
+			status === "Write" &&
+			df.executes &&
+			!frappe.user.has_role(["Administrator", "Code Author"])
+		) {
+			status = "Read";
+		}
+		if (explain) console.log("By Executes:" + status);
+
 		if (status === "Write" && df.set_only_once && !doc.__islocal) {
 			status = "Read";
 		}
