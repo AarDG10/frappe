@@ -737,6 +737,7 @@ class Document(BaseDocument):
 		self.set_new_name(set_name=set_name, set_child_names=set_child_names)
 		self.set_parent_in_children()
 		self.validate_higher_perm_levels()
+		self.validate_executable_field_access()
 
 		self.flags.in_insert = True
 		self.run_before_save_methods()
@@ -846,6 +847,7 @@ class Document(BaseDocument):
 		self.set_name_in_children()
 
 		self.validate_higher_perm_levels()
+		self.validate_executable_field_access()
 		self._validate_links()
 		self.run_before_save_methods()
 
@@ -1341,6 +1343,30 @@ class Document(BaseDocument):
 			if high_permlevel_fields:
 				for d in self.get(df.fieldname):
 					d.reset_values_if_no_permlevel_access(has_access_to, high_permlevel_fields)
+
+	def validate_executable_field_access(self):
+		"""Fields marked `executes` can only be changed by a Code Author. Others get the old value back."""
+		if self.flags.ignore_permissions or frappe.flags.in_install:
+			return
+
+		executable_fields = self.meta.get_executable_fields()
+		child_executable_fields = {
+			df.fieldname: child_fields
+			for df in self.meta.get_table_fields()
+			if (child_fields := frappe.get_meta(df.options).get_executable_fields())
+		}
+		if not (executable_fields or child_executable_fields):
+			return
+
+		if frappe.session.user == "Administrator" or "Code Author" in frappe.get_roles():
+			return
+
+		if executable_fields:
+			self.reset_values_if_no_permlevel_access([], executable_fields)
+
+		for fieldname, child_fields in child_executable_fields.items():
+			for d in self.get(fieldname):
+				d.reset_values_if_no_permlevel_access([], child_fields)
 
 	def get_permlevel_access(self, permission_type="write"):
 		allowed_permlevels = []
