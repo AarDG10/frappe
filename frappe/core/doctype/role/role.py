@@ -7,7 +7,7 @@ from frappe.model.document import Document
 from frappe.website.path_resolver import validate_path
 from frappe.website.router import clear_routing_cache
 
-STANDARD_ROLES = ("Administrator", "System Manager", "Script Manager", "All", "Guest")
+STANDARD_ROLES = ("Administrator", "System Manager", "Script Manager", "Code Author", "All", "Guest")
 
 
 class Role(Document):
