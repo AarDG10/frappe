@@ -7,6 +7,7 @@ import frappe
 from frappe.core.doctype.submission_queue.submission_queue import queue_submission
 from frappe.desk.form.load import run_onload
 from frappe.model.docstatus import DocStatus
+from frappe.model.workflow import check_direct_cancel_allowed
 from frappe.monitor import add_data_to_monitor
 from frappe.utils.scheduler import is_scheduler_inactive
 from frappe.utils.telemetry import capture_doc
@@ -60,6 +61,7 @@ def cancel(
 ):
 	"""cancel a doclist"""
 	doc = frappe.get_doc(doctype, name)
+	check_direct_cancel_allowed(doc)
 	capture_doc(doc, "Cancel")
 
 	if workflow_state_fieldname and workflow_state:

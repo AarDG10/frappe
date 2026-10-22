@@ -7,6 +7,7 @@ import frappe
 from frappe import _
 from frappe.core.doctype.submission_queue.submission_queue import queue_submission
 from frappe.model.document import Document
+from frappe.model.workflow import check_direct_cancel_allowed
 from frappe.utils import cint
 from frappe.utils.scheduler import is_scheduler_inactive
 
@@ -102,6 +103,7 @@ def _bulk_action(doctype, docnames, action, data, task_id=None):
 					doc.submit()
 					message = _("Submitting {0}").format(doctype)
 			elif action == "cancel" and doc.docstatus.is_submitted():
+				check_direct_cancel_allowed(doc)
 				doc.cancel()
 				message = _("Cancelling {0}").format(doctype)
 			elif action == "update" and not doc.docstatus.is_cancelled():

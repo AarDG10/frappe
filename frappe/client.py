@@ -291,7 +291,10 @@ def cancel(doctype: str, name: str | int):
 
 	:param doctype: DocType of the document to be cancelled
 	:param name: name of the document to be cancelled"""
+	from frappe.model.workflow import check_direct_cancel_allowed
+
 	wrapper = frappe.get_doc(doctype, name)
+	check_direct_cancel_allowed(wrapper)
 	wrapper.cancel()
 
 	return wrapper.as_dict()

@@ -14,6 +14,7 @@ from frappe.model import default_fields
 from frappe.model.delete_doc import LinkedDocumentsOverflow, get_dynamic_linked_docs
 from frappe.model.delete_doc import get_linked_docs as get_statically_linked_docs
 from frappe.model.dynamic_links import get_dynamic_link_map
+from frappe.model.workflow import check_direct_cancel_allowed
 from frappe.modules import load_doctype_module
 from frappe.query_builder.functions import Count
 from frappe.utils.data import get_filter
@@ -469,6 +470,7 @@ def cancel_linked_doc(docinfo):
 	"""Cancel a document unless the on_cancel hook of another document already cancelled it."""
 	doc = frappe.get_doc(docinfo.get("doctype"), docinfo.get("name"))
 	if doc.docstatus.is_submitted():
+		check_direct_cancel_allowed(doc)
 		doc.cancel()
 
 

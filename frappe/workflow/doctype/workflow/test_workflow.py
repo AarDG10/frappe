@@ -7,6 +7,7 @@ import responses
 
 import frappe
 from frappe.model.workflow import (
+	WorkflowPermissionError,
 	WorkflowTransitionError,
 	apply_workflow,
 	can_cancel_document,
@@ -571,6 +572,85 @@ def create_new_webhook():
 	webhook.save()
 
 	return webhook
+
+
+class TestWorkflowOwnedCancel(IntegrationTestCase):
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+		cls.doctype = create_new_submittable_doctype().name
+		for doc in (
+			{"doctype": "Workflow State", "workflow_state_name": "Cancelled"},
+			{"doctype": "Workflow Action Master", "workflow_action_name": "Cancel"},
+		):
+			frappe.get_doc(doc).insert(ignore_if_duplicate=True)
+
+	def setUp(self):
+		self.addCleanup(frappe.set_user, "Administrator")
+		self.workflow = self.create_cancel_workflow()
+		self.user = create_user_without_roles()
+		frappe.get_doc("User", self.user).add_roles("System Manager")
+		doc = frappe.get_doc({"doctype": self.doctype, "test_field": "x"}).insert()
+		self.doc = apply_workflow(doc, "Approve")
+
+	def create_cancel_workflow(self):
+		for name in frappe.get_all("Workflow", {"document_type": self.doctype}, pluck="name"):
+			frappe.delete_doc("Workflow", name)
+
+		return frappe.get_doc(
+			{
+				"doctype": "Workflow",
+				"workflow_name": f"Cancel Workflow {frappe.generate_hash(length=6)}",
+				"document_type": self.doctype,
+				"workflow_state_field": "workflow_state",
+				"is_active": 1,
+				"states": [
+					{"state": "Pending", "allow_edit": "All", "doc_status": 0},
+					{"state": "Approved", "allow_edit": "System Manager", "doc_status": 1},
+					{"state": "Cancelled", "allow_edit": "System Manager", "doc_status": 2},
+				],
+				"transitions": [
+					{
+						"state": "Pending",
+						"action": "Approve",
+						"next_state": "Approved",
+						"allowed": "System Manager",
+						"allow_self_approval": 1,
+					},
+					{
+						"state": "Approved",
+						"action": "Cancel",
+						"next_state": "Cancelled",
+						"allowed": "Website Manager",
+						"allow_self_approval": 1,
+					},
+				],
+			}
+		).insert(ignore_permissions=True)
+
+	def test_direct_cancel_is_refused_when_workflow_owns_cancel(self):
+		from frappe.client import cancel
+
+		frappe.set_user(self.user)
+		self.assertRaises(WorkflowPermissionError, cancel, self.doctype, self.doc.name)
+
+		self.assertEqual(frappe.db.get_value(self.doctype, self.doc.name, "docstatus"), 1)
+
+	def test_workflow_cancel_still_works(self):
+		apply_workflow(self.doc, "Cancel")
+
+		self.assertEqual(frappe.db.get_value(self.doctype, self.doc.name, "docstatus"), 2)
+
+	def test_direct_cancel_works_when_workflow_does_not_own_cancel(self):
+		from frappe.client import cancel
+
+		self.workflow.transitions.pop()
+		self.workflow.save()
+
+		frappe.set_user(self.user)
+		cancel(self.doctype, self.doc.name)
+
+		self.assertEqual(frappe.db.get_value(self.doctype, self.doc.name, "docstatus"), 2)
 
 
 class TestConditionalWorkflow(IntegrationTestCase):

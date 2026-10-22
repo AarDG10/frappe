@@ -276,18 +276,30 @@ def can_cancel_document(doctype: str, docname: str | int | None = None):
 		doc = frappe.get_doc(doctype, docname)
 		doc.check_permission("read")
 
-	workflow = get_workflow(doctype, doc)
+	return not workflow_owns_cancel(get_workflow(doctype, doc))
+
+
+def workflow_owns_cancel(workflow: "Workflow | None") -> bool:
+	"""Whether the workflow has a transition into a cancelled state."""
 	if not workflow:
-		return True
+		return False
 
 	cancelling_states = [s.state for s in workflow.states if s.doc_status == "2"]
-	if not cancelling_states:
-		return True
+	return any(transition.next_state in cancelling_states for transition in workflow.transitions)
 
-	for transition in workflow.transitions:
-		if transition.next_state in cancelling_states:
-			return False
-	return True
+
+def check_direct_cancel_allowed(doc: Document):
+	"""Throw if the document has to be cancelled through its workflow.
+
+	Meant for user-facing cancel entry points. `apply_workflow` and server code
+	call `doc.cancel()` directly and are not affected.
+	"""
+	if workflow_owns_cancel(get_workflow(doc.doctype, doc)):
+		doc.check_permission("cancel")
+		frappe.throw(
+			_("{0} {1} can only be cancelled through its workflow").format(_(doc.doctype), doc.name),
+			WorkflowPermissionError,
+		)
 
 
 def get_state_for_docstatus(workflow: "Workflow", docstatus) -> str:
