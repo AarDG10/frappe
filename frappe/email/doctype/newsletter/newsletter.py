@@ -447,7 +447,8 @@ def send_scheduled_email():
 def newsletter_email_read(recipient_email=None, reference_doctype=None, reference_name=None):
 	if not (recipient_email and reference_name):
 		return
-	verify_request()
+	if not verify_request():
+		return
 	try:
 		doc = frappe.get_cached_doc("Newsletter", reference_name)
 		if doc.add_viewed(recipient_email, force=True, unique_views=True):
