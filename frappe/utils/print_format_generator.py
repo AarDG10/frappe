@@ -465,6 +465,8 @@ class PrintFormatGenerator:
 		# a stale link shouldn't fail the render — templates degrade to no letter head too
 		if not name or not frappe.db.exists("Letter Head", name):
 			return None
+		if name == letterhead:
+			frappe.has_permission("Letter Head", doc=name, ptype="read", throw=True)
 		return frappe.get_cached_doc("Letter Head", name)
 
 	def format_page_settings(self) -> dict:

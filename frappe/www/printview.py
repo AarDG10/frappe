@@ -544,6 +544,9 @@ def get_letter_head(doc: "Document", no_letterhead: bool, letterhead: str | None
 	if no_letterhead:
 		return {}
 
+	if letterhead and frappe.db.exists("Letter Head", letterhead):
+		frappe.has_permission("Letter Head", doc=letterhead, ptype="read", throw=True)
+
 	letterhead_name = letterhead or doc.get("letter_head")
 	if letterhead_name:
 		return frappe.db.get_value(
