@@ -71,6 +71,7 @@ class ModuleOnboarding(Document):
 
 	@frappe.whitelist()
 	def reset_progress(self):
+		self.check_permission("write")
 		self.db_set("is_complete", 0)
 
 		for step in self.get_steps():
