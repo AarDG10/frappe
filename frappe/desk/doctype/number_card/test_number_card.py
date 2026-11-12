@@ -139,6 +139,23 @@ class TestNumberCard(IntegrationTestCase):
 		self.assertEqual([row[0] for row in blocked_results], [])
 		self.assertEqual([row[0] for row in allowed_results], [allowed_card_name])
 
+	def test_link_search_requires_read_permission(self):
+		card = frappe.get_doc(
+			{
+				"doctype": "Number Card",
+				"label": "Test Public Card",
+				"type": "Document Type",
+				"document_type": "ToDo",
+				"function": "Count",
+				"is_public": 1,
+			}
+		).insert(ignore_permissions=True)
+		self.addCleanup(lambda: frappe.delete_doc("Number Card", card.name, force=True))
+
+		with test_user(roles=[], user_type="Website User") as user, self.set_user(user.name):
+			with self.assertRaises(frappe.PermissionError):
+				get_cards_for_user("Number Card", "", "name", 0, 20, {})
+
 	def test_create_number_card_is_private_without_create_permission(self):
 		args = {
 			"label": "Test Private Card",
